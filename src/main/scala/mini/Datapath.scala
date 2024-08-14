@@ -5,6 +5,7 @@ package mini
 import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
+import chisel3.util.experimental.BoringUtils
 
 object Const {
   val PC_START = 0x200
@@ -88,8 +89,13 @@ class Datapath(val conf: CoreConfig) extends Module {
       (io.ctrl.pc_sel === PC_0) -> pc
     )
   )
+  val jump = BoringUtils.addSource(csr.io.expt || RegNext(stall || (io.ctrl.pc_sel === PC_EPC) || (io.ctrl.pc_sel === PC_ALU) || (brCond.io.taken) || (io.ctrl.pc_sel === PC_0), 0.U).asBool,  "Jumpornot")
+  BoringUtils.addSource(Mux(csr.io.expt, next_pc, RegNext(next_pc, 0.U)), "rvfiio_pc_jump_data")
+//  printf("[PC Calc] stall:%d, expt:%d, pc_sel:%d Taken:%d pc:%x next_pc:%x \n", stall, csr.io.expt, io.ctrl.pc_sel, (brCond.io.taken), pc, next_pc)
   val inst =
     Mux(started || io.ctrl.inst_kill || brCond.io.taken || csr.io.expt, Instructions.NOP, io.icache.resp.bits.data)
+//  printf("pc:%x next_pc:%x inst:%x\n", pc, next_pc, inst)
+  BoringUtils.addSink(csr.io.expt, "testssdfly")
   pc := next_pc
   io.icache.req.bits.addr := next_pc
   io.icache.req.bits.data := 0.U
@@ -164,7 +170,7 @@ class Datapath(val conf: CoreConfig) extends Module {
     wb_en := io.ctrl.wb_en
     csr_cmd := io.ctrl.csr_cmd
     illegal := io.ctrl.illegal
-    pc_check := io.ctrl.pc_sel === PC_ALU
+    pc_check := (io.ctrl.pc_sel === PC_ALU) || (brCond.io.taken)
   }
 
   // Load
@@ -178,7 +184,26 @@ class Datapath(val conf: CoreConfig) extends Module {
       LD_LBU -> lshift(7, 0).zext
     )
   )
-
+//  printf("alu:%x resp:%x loffset:%x shift:%x load:%x\n", ew_reg.alu, io.dcache.resp.bits.data, loffset, lshift, load)
+//  val load_mask = MuxLookup(Mux(stall, ld_type, io.ctrl.ld_type), "b0000".U)(
+//    Seq(LD_LW -> "b1111".U, LD_LH -> ("b11".U << alu.io.sum(1, 0)), LD_LHU -> ("b11".U << alu.io.sum(1, 0)), LD_LB -> ("b1".U << alu.io.sum(1, 0)), LD_LBU -> ("b1".U << alu.io.sum(1, 0)))
+//  )
+  val lw_addr = RegNext(alu.io.sum, 0.U)
+  val load_mask = MuxLookup(ld_type, "b1111".U)(
+    Seq(
+      LD_XXX -> "b0000".U,
+      LD_LH  -> ("b0011".U << lw_addr(1, 0)),
+      LD_LB  -> ("b0001".U << lw_addr(1, 0)),
+      LD_LHU -> ("b0011".U << lw_addr(1, 0)),
+      LD_LBU -> ("b0001".U << lw_addr(1, 0))
+    )
+  )
+//  printf("AlU:%x %x\n", ew_reg.alu, alu.io.sum)
+  BoringUtils.addSource(io.dcache.resp.bits.data, "rvfiio_mem_rdata")
+  BoringUtils.addSource(load_mask, "rvfiio_mem_rmask")
+//  printf("DCache Access[DataPath]: Req Valid:%d Addr:%x Data:%x Mask:%x load:%x\n", io.dcache.req.valid, io.dcache.req.bits.addr, io.dcache.req.bits.data, io.dcache.req.bits.mask, load)
+  BoringUtils.addSource(RegNext(io.dcache.req.bits.mask, 0.U), "rvfiio_mem_wmask")
+  BoringUtils.addSource(RegNext(io.dcache.req.bits.data, 0.U), "rvfiio_mem_wdata")
   // CSR access
   csr.io.stall := stall
   csr.io.in := ew_reg.csr_in
@@ -215,4 +240,59 @@ class Datapath(val conf: CoreConfig) extends Module {
 //      Mux(regFile.io.wen, regFile.io.wdata, 0.U)
 //    )
 //  }
+  val instCommit = Wire(Bool())
+  val instCommit_predit = Wire(Bool())
+//  printf("CSR Exception:%d\n", csr.io.expt)
+  instCommit_predit := (RegNext(RegNext((started || io.ctrl.inst_kill || brCond.io.taken || csr.io.expt), true.B) || csr.io.expt, true.B) || stall || reset.asBool)
+  instCommit := !instCommit_predit
+  //  when(instCommit_predit){
+//    // checker.io.instCommit.valid := false.B
+//    instCommit := false.B
+//  }otherwise{
+//    instCommit := true.B
+//    when(!stall && !csr.io.expt){
+////      printf("PC: %x Inst: %x\n", ew_reg.pc, ew_reg.inst)
+//      // checker.io.instCommit.valid := true.B
+//      instCommit := true.B
+////      printf(
+////        "[ChiselCommitPrint]PC: %x, INST: %x, REG[%d] <- %x\n",
+////        ew_reg.pc,
+////        ew_reg.inst,
+////        Mux(regFile.io.wen, wb_rd_addr, 0.U),
+////        Mux(regFile.io.wen, regFile.io.wdata, 0.U)
+////      )
+//    }.otherwise{
+//      // checker.io.instCommit.valid := false.B
+//      instCommit := false.B
+//    }
+//  }
+  val instOrder = RegInit(0.U(64.W))
+
+  when(instCommit){
+    instOrder := instOrder + 1.U
+//    printf("[Debug INST %x RS1 %d RS2 %d %d %d] \n", ew_reg.inst,
+//      RegNext(io.ctrl.A_sel === A_RS1, 0.U), RegNext(io.ctrl.B_sel === B_RS2, 0.U),
+//      ew_reg.inst(19, 15), ew_reg.inst(24, 20)
+//    )
+  }
+
+  BoringUtils.addSource(instCommit, "rvfiio_valid")
+  BoringUtils.addSource(instOrder, "rvfiio_order")
+  BoringUtils.addSource(ew_reg.inst, "rvfiio_insn")
+  val flywire_rs1_addr = Wire(UInt(5.W))
+  val flywire_rs2_addr = Wire(UInt(5.W))
+  flywire_rs1_addr := Mux(RegNext(io.ctrl.A_sel === A_RS1, 0.U).asBool || RegNext(io.ctrl.br_type =/= 0.U, 0.U).asBool, ew_reg.inst(19, 15), 0.U)
+  flywire_rs2_addr := Mux(RegNext(io.ctrl.B_sel === B_RS2, 0.U).asBool || RegNext(io.ctrl.st_type =/= 0.U, 0.U).asBool || RegNext(io.ctrl.br_type =/= 0.U, 0.U).asBool, ew_reg.inst(24, 20), 0.U)
+
+//  printf("Load and Store[%x %x]: Inst:%x, %x %x, RS1:%d, RS2:%d\n", RegNext(io.ctrl.ld_type, 0.U), RegNext(io.ctrl.st_type, 0.U), ew_reg.inst, io.ctrl.A_sel, io.ctrl.B_sel, ew_reg.inst(19, 15), ew_reg.inst(24, 20))
+  BoringUtils.addSource(flywire_rs1_addr, "rvfiio_rs1_addr")
+  BoringUtils.addSource(flywire_rs2_addr, "rvfiio_rs2_addr")
+  BoringUtils.addSource(RegNext(rs1, 0.U), "rvfiio_rs1_rdata")
+  BoringUtils.addSource(RegNext(rs2, 0.U), "rvfiio_rs2_rdata")
+  BoringUtils.addSource(Mux(regFile.io.wen, wb_rd_addr, 0.U), "rvfiio_rd_addr")
+  BoringUtils.addSource(regWrite, "rvfiio_rd_wdata")
+  BoringUtils.addSource(ew_reg.pc, "rvfiio_pc_rdata")
+//  BoringUtils.addSource(RegNext(next_pc, 0.U), "rvfiio_pc_wdata") // 可能会被刷掉，所以是不对的
+  BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
+  BoringUtils.addSource(csr.io.expt, "rvfiio_trap")
 }

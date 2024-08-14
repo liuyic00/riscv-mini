@@ -264,6 +264,8 @@ class CSR(val xlen: Int) extends Module {
   when(isInstRet && instret.andR) { instreth := instreth + 1.U }
 
   when(!io.stall) {
+    printf("Exception:%d\n", io.expt)
+//    assume(!io.expt)
     when(io.expt) {
       mepc := io.pc >> 2 << 2
       mcause := Mux(
