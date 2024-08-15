@@ -4,6 +4,8 @@ package mini
 
 import chisel3._
 import chisel3.util._
+import rvspeccore.core.RVConfig
+import rvspeccore.checker._
 
 object CSR {
   val N = 0.U(3.W)
@@ -262,25 +264,25 @@ class CSR(val xlen: Int) extends Module {
   val isInstRet = io.inst =/= Instructions.NOP && (!io.expt || isEcall || isEbreak) && !io.stall
   when(isInstRet) { instret := instret + 1.U }
   when(isInstRet && instret.andR) { instreth := instreth + 1.U }
-
+  val exception_case = Mux(
+    iaddrInvalid,
+    Cause.InstAddrMisaligned,
+    Mux(
+      laddrInvalid,
+      Cause.LoadAddrMisaligned,
+      Mux(
+        saddrInvalid,
+        Cause.StoreAddrMisaligned,
+        Mux(isEcall, Cause.Ecall + PRV, Mux(isEbreak, Cause.Breakpoint, Cause.IllegalInst))
+      )
+    )
+  )
   when(!io.stall) {
     printf("Exception:%d\n", io.expt)
 //    assume(!io.expt)
     when(io.expt) {
       mepc := io.pc >> 2 << 2
-      mcause := Mux(
-        iaddrInvalid,
-        Cause.InstAddrMisaligned,
-        Mux(
-          laddrInvalid,
-          Cause.LoadAddrMisaligned,
-          Mux(
-            saddrInvalid,
-            Cause.StoreAddrMisaligned,
-            Mux(isEcall, Cause.Ecall + PRV, Mux(isEbreak, Cause.Breakpoint, Cause.IllegalInst))
-          )
-        )
-      )
+      mcause := exception_case
       PRV := CSR.PRV_M
       IE := false.B
       PRV1 := PRV
@@ -323,4 +325,11 @@ class CSR(val xlen: Int) extends Module {
         .elsewhen(csr_addr === CSR.instrethw) { instreth := wdata }
     }
   }
+  val rvConfig = RVConfig(32, "MCS", "A")
+  val resultEventWire = rvspeccore.checker.ConnectCheckerResult.makeEventSource()(32, rvConfig)
+  resultEventWire.valid := io.expt
+  resultEventWire.intrNO := 0.U
+  resultEventWire.cause := exception_case
+  resultEventWire.exceptionPC := io.pc >> 2 << 2
+  resultEventWire.exceptionInst := io.inst
 }

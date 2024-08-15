@@ -4,6 +4,8 @@ ThisBuild / organization     := "edu.berkeley.cs"
 
 val chiselVersion = "3.6.0"
 
+lazy val riscvSpecCore = (project in file("riscv-spec-core"))
+
 lazy val root = (project in file("."))
   .settings(
     name := "riscv-mini",
@@ -18,4 +20,4 @@ lazy val root = (project in file("."))
       "-Xcheckinit",
     ),
     addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full),
-  )
+  ).dependsOn(riscvSpecCore)

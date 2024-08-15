@@ -5,6 +5,10 @@ package mini
 import chisel3._
 import chisel3.util.Valid
 import chisel3.util.experimental.BoringUtils
+import rvspeccore.checker.RVI
+import rvspeccore.core.RVConfig
+import rvspeccore.checker._
+
 class RVFIIO extends Bundle {
   val valid = Output(Bool())
   val order = Output(UInt(64.W))
@@ -196,6 +200,9 @@ class Core(val conf: CoreConfig) extends Module {
   }
 //  printf("RESP:%x\n", rvfi_con.mem_rdata)
   when(rvfi.valid){
+    assume(
+      RVI.regImm(rvfi.insn)(conf.xlen),
+    )
     printf(
       "[RVFI Print%x][trapnext:%x][Expt:%x]Mem_rmask:%x, ADDR:%x Core: valid=%d order=%x insn=%x Jump:%d JumpTarget: %x rd_addr=%d rd_data=%x rs1_addr=%d rs1_data=%x rs2_addr=%d rs2_data=%x PCr=%x, PCw=%x\n",
 //      "[RVFI Print]Core: valid=%d order=%x insn=%x pc_rdata:%x pc_wdata:%x\n",

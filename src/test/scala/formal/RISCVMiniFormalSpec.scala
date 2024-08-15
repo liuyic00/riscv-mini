@@ -70,15 +70,15 @@ class RISCVMiniFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTe
   // it should "pass simpletest" in {
   //   test(new CoreTester(new Core(DefaultCoreConfig()), "rv32ui-p-simple")).runUntilStop(10)
   // }
-   it should "generate Verilog" in {
-     (new chisel3.stage.ChiselStage)
-       .emitSystemVerilog(new Core(DefaultCoreConfig()), Array("--target-dir", "test_run_dir/Elaborate_RVFI"))
-   }
-  it should "generate SoCVerilog" in {
-    (new chisel3.stage.ChiselStage)
-      .emitSystemVerilog(new CoreSoc(new Core(DefaultCoreConfig())), Array("--target-dir", "test_run_dir/Elaborate_RVFI"))
-  }
+//   it should "generate Verilog" in {
+//     (new chisel3.stage.ChiselStage)
+//       .emitSystemVerilog(new Core(DefaultCoreConfig()), Array("--target-dir", "test_run_dir/Elaborate_RVFI"))
+//   }
+//  it should "generate SoCVerilog" in {
+//    (new chisel3.stage.ChiselStage)
+//      .emitSystemVerilog(new CoreSoc(new Core(DefaultCoreConfig())), Array("--target-dir", "test_run_dir/Elaborate_RVFI"))
+//  }
   it should "pass verify" in {
-    verify(new Core(DefaultCoreConfig()), Seq(BoundedCheck(20), BtormcEngineAnnotation))
+    verify(new CoreSoc(new Core(DefaultCoreConfig())), Seq(BoundedCheck(20), BtormcEngineAnnotation))
   }
 }

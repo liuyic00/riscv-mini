@@ -6,6 +6,8 @@ import chisel3._
 import chisel3.util._
 import chisel3.experimental.BundleLiterals._
 import chisel3.util.experimental.BoringUtils
+import rvspeccore.core.RVConfig
+import rvspeccore.checker._
 
 object Const {
   val PC_START = 0x200
@@ -202,8 +204,10 @@ class Datapath(val conf: CoreConfig) extends Module {
   BoringUtils.addSource(io.dcache.resp.bits.data, "rvfiio_mem_rdata")
   BoringUtils.addSource(load_mask, "rvfiio_mem_rmask")
 //  printf("DCache Access[DataPath]: Req Valid:%d Addr:%x Data:%x Mask:%x load:%x\n", io.dcache.req.valid, io.dcache.req.bits.addr, io.dcache.req.bits.data, io.dcache.req.bits.mask, load)
-  BoringUtils.addSource(RegNext(io.dcache.req.bits.mask, 0.U), "rvfiio_mem_wmask")
-  BoringUtils.addSource(RegNext(io.dcache.req.bits.data, 0.U), "rvfiio_mem_wdata")
+  val mem_wmask = RegNext(io.dcache.req.bits.mask, 0.U)
+  val mem_wdata = RegNext(io.dcache.req.bits.data, 0.U)
+  BoringUtils.addSource(mem_wmask, "rvfiio_mem_wmask")
+  BoringUtils.addSource(mem_wdata, "rvfiio_mem_wdata")
   // CSR access
   csr.io.stall := stall
   csr.io.in := ew_reg.csr_in
@@ -295,4 +299,21 @@ class Datapath(val conf: CoreConfig) extends Module {
 //  BoringUtils.addSource(RegNext(next_pc, 0.U), "rvfiio_pc_wdata") // 可能会被刷掉，所以是不对的
   BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
   BoringUtils.addSource(csr.io.expt, "rvfiio_trap")
+  val rvConfig = RVConfig(32, "MCS", "A")
+  val checker = Module(new CheckerWithResult(checkMem = false)(rvConfig))
+  checker.io.instCommit.valid := instCommit
+  checker.io.instCommit.inst  := ew_reg.inst
+  checker.io.instCommit.pc    := ew_reg.pc
+  ConnectCheckerResult.setChecker(checker)(32, rvConfig)
+//  val mem = rvspeccore.checker.ConnectCheckerResult.makeMemSource()(32)
+////  load_mask > 0 , then valid
+//  mem.read.valid := load_mask > 0.U
+//  mem.read.addr  := io.dcache.req.bits.addr
+//  mem.read.data  := io.dcache.resp.bits.data
+//  mem.read.memWidth := load_mask // FIXME: 需要进一步修改 目前先不检查mem
+//  mem.write.valid := mem_wmask > 0.U
+//  mem.write.addr  := RegNext(io.dcache.req.bits.addr, 0.U)
+//  mem.write.data  := mem_wdata
+//  mem.write.memWidth := mem_wmask // FIXME: 需要进一步修改
+
 }
