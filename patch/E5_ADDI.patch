@@ -1,0 +1,35 @@
+diff --git a/src/main/scala/mini/Alu.scala b/src/main/scala/mini/Alu.scala
+index 4f50bd3..9e17fce 100644
+--- a/src/main/scala/mini/Alu.scala
++++ b/src/main/scala/mini/Alu.scala
+@@ -18,6 +18,7 @@ object Alu {
+   val ALU_SRA = 9.U(4.W)
+   val ALU_COPY_A = 10.U(4.W)
+   val ALU_COPY_B = 11.U(4.W)
++  val ALU_ADDI = 12.U(4.W)
+   val ALU_XXX = 15.U(4.W)
+ }
+ 
+@@ -53,7 +54,8 @@ class AluSimple(val width: Int) extends Alu {
+       ALU_AND -> (io.A & io.B),
+       ALU_OR -> (io.A | io.B),
+       ALU_XOR -> (io.A ^ io.B),
+-      ALU_COPY_A -> io.A
++      ALU_COPY_A -> io.A,
++      ALU_ADDI -> Cat((io.A + io.B)(31,1), 0.U(1.W))
+     )
+   )
+ 
+diff --git a/src/main/scala/mini/Control.scala b/src/main/scala/mini/Control.scala
+index e6bd119..e9bdccd 100644
+--- a/src/main/scala/mini/Control.scala
++++ b/src/main/scala/mini/Control.scala
+@@ -91,7 +91,7 @@ object Control {
+     SB    -> List(PC_4  , A_RS1,  B_IMM, IMM_S, ALU_ADD   , BR_XXX, N, ST_SB , LD_XXX, WB_ALU, N, CSR.N, N),
+     SH    -> List(PC_4  , A_RS1,  B_IMM, IMM_S, ALU_ADD   , BR_XXX, N, ST_SH , LD_XXX, WB_ALU, N, CSR.N, N),
+     SW    -> List(PC_4  , A_RS1,  B_IMM, IMM_S, ALU_ADD   , BR_XXX, N, ST_SW , LD_XXX, WB_ALU, N, CSR.N, N),
+-    ADDI  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_ADD   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N),
++    ADDI  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_ADDI   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N),
+     SLTI  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_SLT   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N),
+     SLTIU -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_SLTU  , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N),
+     XORI  -> List(PC_4  , A_RS1,  B_IMM, IMM_I, ALU_XOR   , BR_XXX, N, ST_XXX, LD_XXX, WB_ALU, Y, CSR.N, N),

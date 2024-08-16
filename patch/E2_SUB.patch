@@ -1,0 +1,13 @@
+diff --git a/src/main/scala/mini/Alu.scala b/src/main/scala/mini/Alu.scala
+index 4f50bd3..8f125df 100644
+--- a/src/main/scala/mini/Alu.scala
++++ b/src/main/scala/mini/Alu.scala
+@@ -44,7 +44,7 @@ class AluSimple(val width: Int) extends Alu {
+   io.out := MuxLookup(io.alu_op, io.B)(
+     Seq(
+       ALU_ADD -> (io.A + io.B),
+-      ALU_SUB -> (io.A - io.B),
++      ALU_SUB -> Cat(0.U(1.W), (io.A - io.B)(30,0)),
+       ALU_SRA -> (io.A.asSInt >> shamt).asUInt,
+       ALU_SRL -> (io.A >> shamt),
+       ALU_SLL -> (io.A << shamt),

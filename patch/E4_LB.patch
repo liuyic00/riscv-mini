@@ -1,0 +1,13 @@
+diff --git a/src/main/scala/mini/Datapath.scala b/src/main/scala/mini/Datapath.scala
+index 32bf338..81ccba6 100644
+--- a/src/main/scala/mini/Datapath.scala
++++ b/src/main/scala/mini/Datapath.scala
+@@ -181,7 +181,7 @@ class Datapath(val conf: CoreConfig) extends Module {
+   val load = MuxLookup(ld_type, io.dcache.resp.bits.data.zext)(
+     Seq(
+       LD_LH -> lshift(15, 0).asSInt,
+-      LD_LB -> lshift(7, 0).asSInt,
++      LD_LB -> lshift(7, 0).zext,
+       LD_LHU -> lshift(15, 0).zext,
+       LD_LBU -> lshift(7, 0).zext
+     )
