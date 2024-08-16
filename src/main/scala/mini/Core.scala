@@ -71,6 +71,10 @@ class CoreSoc(core: => Core)extends Module {
     }
   }
   cycle := cycle + 1.U
+  val someAssume = Wire(Bool())
+  someAssume := DontCare
+  BoringUtils.addSink(someAssume, "someassumeid")
+  assume(someAssume)
 }
 case class CoreConfig(
   xlen:       Int,
@@ -199,10 +203,18 @@ class Core(val conf: CoreConfig) extends Module {
     rvfi.pc_wdata := rvfi.pc_rdata + 4.U
   }
 //  printf("RESP:%x\n", rvfi_con.mem_rdata)
+  val tmpAssume = !rvfi.valid || (
+    RVI.regImm(rvfi.insn)(conf.xlen)
+      || RVI.regReg(rvfi.insn)(conf.xlen)
+      || RVI.control(rvfi.insn)(conf.xlen)
+      || RVI.loadStore(rvfi.insn)(conf.xlen)
+      || RVI.other(rvfi.insn)(conf.xlen)
+  )
+  BoringUtils.addSource(tmpAssume, "someassumeid")
   when(rvfi.valid){
-    assume(
-      RVI.regImm(rvfi.insn)(conf.xlen),
-    )
+//    assume(
+//      RVI.regImm(rvfi.insn)(conf.xlen),
+//    )
     printf(
       "[RVFI Print%x][trapnext:%x][Expt:%x]Mem_rmask:%x, ADDR:%x Core: valid=%d order=%x insn=%x Jump:%d JumpTarget: %x rd_addr=%d rd_data=%x rs1_addr=%d rs1_data=%x rs2_addr=%d rs2_data=%x PCr=%x, PCw=%x\n",
 //      "[RVFI Print]Core: valid=%d order=%x insn=%x pc_rdata:%x pc_wdata:%x\n",

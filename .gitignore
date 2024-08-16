@@ -31,3 +31,5 @@ tests/64/*
 novas_dump.log
 ucli.key
 
+.DS_Store
+metals.sbt
