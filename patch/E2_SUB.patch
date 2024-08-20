@@ -1,0 +1,13 @@
+diff --git a/src/main/scala/mini/Alu.scala b/src/main/scala/mini/Alu.scala
+index 4f50bd3..3cba138 100644
+--- a/src/main/scala/mini/Alu.scala
++++ b/src/main/scala/mini/Alu.scala
+@@ -73,7 +73,7 @@ class AluArea(val width: Int) extends Alu {
+   val out =
+     Mux(
+       io.alu_op === ALU_ADD || io.alu_op === ALU_SUB,
+-      sum,
++      Mux(io.alu_op === ALU_SUB, Cat(0.U(1.W), sum(30,0)), sum),
+       Mux(
+         io.alu_op === ALU_SLT || io.alu_op === ALU_SLTU,
+         cmp,
