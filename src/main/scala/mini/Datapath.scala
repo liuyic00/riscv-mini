@@ -299,21 +299,43 @@ class Datapath(val conf: CoreConfig) extends Module {
 //  BoringUtils.addSource(RegNext(next_pc, 0.U), "rvfiio_pc_wdata") // 可能会被刷掉，所以是不对的
   BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
   BoringUtils.addSource(csr.io.expt, "rvfiio_trap")
-  val rvConfig = RVConfig(32, "MCS", "A")
-  val checker = Module(new CheckerWithResult(checkMem = false)(rvConfig))
+  val rvConfig = RVConfig(32, "MS", "A")
+  val checker = Module(new CheckerWithResult(checkMem = true)(rvConfig))
   checker.io.instCommit.valid := instCommit
   checker.io.instCommit.inst  := ew_reg.inst
   checker.io.instCommit.pc    := ew_reg.pc
   ConnectCheckerResult.setChecker(checker)(32, rvConfig)
-//  val mem = rvspeccore.checker.ConnectCheckerResult.makeMemSource()(32)
+  val mem = rvspeccore.checker.ConnectCheckerResult.makeMemSource()(32)
 ////  load_mask > 0 , then valid
-//  mem.read.valid := load_mask > 0.U
-//  mem.read.addr  := io.dcache.req.bits.addr
-//  mem.read.data  := io.dcache.resp.bits.data
-//  mem.read.memWidth := load_mask // FIXME: 需要进一步修改 目前先不检查mem
-//  mem.write.valid := mem_wmask > 0.U
-//  mem.write.addr  := RegNext(io.dcache.req.bits.addr, 0.U)
-//  mem.write.data  := mem_wdata
-//  mem.write.memWidth := mem_wmask // FIXME: 需要进一步修改
 
+  val load_width = MuxLookup(ld_type, "b0000".U)(
+    Seq(
+      LD_XXX -> 0.U(log2Ceil(33).W),
+      LD_LB  -> 8.U(log2Ceil(33).W),
+      LD_LH  -> 16.U(log2Ceil(33).W),
+      LD_LW  -> 32.U(log2Ceil(33).W),
+      LD_LBU -> 8.U(log2Ceil(33).W),
+      LD_LHU -> 16.U(log2Ceil(33).W)
+    )
+  )
+  val store_width = MuxLookup(Mux(stall, st_type, io.ctrl.st_type), "b0000".U)(
+    Seq(
+      ST_XXX -> 0.U(log2Ceil(33).W),
+      ST_SB -> 8.U(log2Ceil(33).W),
+      ST_SH -> 16.U(log2Ceil(33).W),
+      ST_SW -> 32.U(log2Ceil(33).W)
+    )
+  )
+  val req_addr = RegNext(Mux(stall, ew_reg.alu, alu.io.sum), 0.U)
+  mem.read.valid := (load_width > 0.U) && !csr.io.expt
+  mem.read.addr  := req_addr
+  mem.read.data  := io.dcache.resp.bits.data
+  mem.read.memWidth := load_width
+//  printf("FlyWireMemDebug[read, expt:%d]:  Req valid:%d, addr:%x, data:%x, memWidth:%x load_mask:%x\n", csr.io.expt, (load_mask > 0.U), RegNext(mem.read.addr, 0.U), mem.read.data, load_mask, load_width)
+  printf("FlyWireMemDebug[write valid:%d, expt:%d]:  Width>0:%d, addr:%x, data:%x, memWidth:%x\n", RegNext(store_width > 0.U, false.B) && !csr.io.expt, csr.io.expt, store_width > 0.U, req_addr, mem_wdata, RegNext(store_width, 0.U))
+//  RegNext(store_width > 0.U && !csr.io.expt, false.B)
+  mem.write.valid := RegNext(store_width > 0.U, false.B) && !csr.io.expt
+  mem.write.addr  := req_addr
+  mem.write.data  := mem_wdata
+  mem.write.memWidth := RegNext(store_width, 0.U)
 }
