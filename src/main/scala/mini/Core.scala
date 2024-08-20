@@ -208,9 +208,9 @@ class Core(val conf: CoreConfig) extends Module {
       || RVI.regReg(rvfi.insn)(conf.xlen)
       || RVI.control(rvfi.insn)(conf.xlen)
       || RVI.loadStore(rvfi.insn)(conf.xlen)
-      || RVI.other(rvfi.insn)(conf.xlen)
+//      || RVI.other(rvfi.insn)(conf.xlen)
   )
-  BoringUtils.addSource(tmpAssume, "someassumeid")
+  BoringUtils.addSource(tmpAssume && (rvfi.trap === false.B), "someassumeid")
   when(rvfi.valid){
 //    assume(
 //      RVI.regImm(rvfi.insn)(conf.xlen),
