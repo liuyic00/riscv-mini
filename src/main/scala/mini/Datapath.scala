@@ -299,7 +299,15 @@ class Datapath(val conf: CoreConfig) extends Module {
 //  BoringUtils.addSource(RegNext(next_pc, 0.U), "rvfiio_pc_wdata") // 可能会被刷掉，所以是不对的
   BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
   BoringUtils.addSource(csr.io.expt, "rvfiio_trap")
-  val rvConfig = RVConfig(32, "MS", "A")
+  val rvConfig = RVConfig(
+    "XLEN" -> 32,
+    "extensions" -> "M",
+    "initValue" -> Map(
+      "pc"    -> "h0000_0200",
+      "mtvec" -> "h0000_01c0"
+    ),
+    "formal" -> Seq("ArbitraryRegFile")
+  )
   val checker = Module(new CheckerWithResult(checkMem = true)(rvConfig))
   checker.io.instCommit.valid := instCommit
   checker.io.instCommit.inst  := ew_reg.inst

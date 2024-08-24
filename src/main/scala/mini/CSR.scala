@@ -325,7 +325,15 @@ class CSR(val xlen: Int) extends Module {
         .elsewhen(csr_addr === CSR.instrethw) { instreth := wdata }
     }
   }
-  val rvConfig = RVConfig(32, "MCS", "A")
+  val rvConfig = RVConfig(
+    "XLEN" -> 32,
+    "extensions" -> "M",
+    "initValue" -> Map(
+      "pc"    -> "h0000_0200",
+      "mtvec" -> "h0000_01c0"
+    ),
+    "formal" -> Seq("ArbitraryRegFile")
+  )
   val resultEventWire = rvspeccore.checker.ConnectCheckerResult.makeEventSource()(32, rvConfig)
   resultEventWire.valid := io.expt
   resultEventWire.intrNO := 0.U

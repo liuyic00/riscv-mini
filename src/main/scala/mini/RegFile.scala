@@ -4,6 +4,7 @@ package mini
 
 import chisel3._
 import rvspeccore.checker.ConnectCheckerResult
+import rvspeccore.checker.ArbitraryRegFile
 
 class RegFileIO(xlen: Int) extends Bundle {
   val raddr1 = Input(UInt(5.W))
@@ -18,8 +19,9 @@ class RegFileIO(xlen: Int) extends Bundle {
 class RegFile(xlen: Int) extends Module {
   val io = IO(new RegFileIO(xlen))
 //  val regs = Mem(32, UInt(xlen.W))
-  val regs = RegInit(VecInit(Seq.fill(32)(0.U(xlen.W))))
-//  val regs = Reg(Vec(32, UInt(64.W)))
+//  val regs = RegInit(VecInit(Seq.fill(32)(0.U(xlen.W))))
+//  val regs = Reg(Vec(32, UInt(xlen.W)))
+  val regs = RegInit(ArbitraryRegFile.gen(xlen))
   val resultRegWire = Wire(Vec(32, UInt(xlen.W)))
   resultRegWire := regs
   resultRegWire(0) := 0.U

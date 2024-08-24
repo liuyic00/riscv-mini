@@ -66,7 +66,7 @@ object DefaultCoreConfig {
 }
 
 class RISCVMiniFormalSpec extends AnyFlatSpec with Formal with ChiselScalatestTester {
-  behavior of "RISCVMiniFormal_EX"
+  behavior of "RISCVMiniFormal_E5"
 //   it should "pass simpletest" in {
 //     test(new CoreTester(new Core(DefaultCoreConfig()), "rv32ui-p-simple")).runUntilStop(10)
 //   }
