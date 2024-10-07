@@ -79,7 +79,7 @@ class Datapath(val conf: CoreConfig) extends Module {
     */
   val started = RegNext(reset.asBool)
   val stall = !io.icache.resp.valid || !io.dcache.resp.valid
-  val pc = RegInit(Const.PC_START.U(conf.xlen.W) - 4.U(conf.xlen.W))
+  val pc = RegInit(mini.Const.PC_START.U(conf.xlen.W) - 4.U(conf.xlen.W))
   // Next Program Counter
   val next_pc = MuxCase(
     pc + 4.U,
