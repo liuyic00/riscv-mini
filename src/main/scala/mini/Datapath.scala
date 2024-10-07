@@ -300,13 +300,13 @@ class Datapath(val conf: CoreConfig) extends Module {
   BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
   BoringUtils.addSource(csr.io.expt, "rvfiio_trap")
   val rvConfig = RVConfig(
-    "XLEN" -> 32,
-    "extensions" -> "M",
-    "initValue" -> Map(
+    XLEN = 32,
+    extensions = "M",
+    initValue = Map(
       "pc"    -> "h0000_0200",
       "mtvec" -> "h0000_01c0"
     ),
-    "formal" -> Seq("ArbitraryRegFile")
+    formal = Seq("ArbitraryRegFile")
   )
   val checker = Module(new CheckerWithResult(checkMem = true)(rvConfig))
   checker.io.instCommit.valid := instCommit

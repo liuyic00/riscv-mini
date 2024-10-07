@@ -326,13 +326,13 @@ class CSR(val xlen: Int) extends Module {
     }
   }
   val rvConfig = RVConfig(
-    "XLEN" -> 32,
-    "extensions" -> "M",
-    "initValue" -> Map(
+    XLEN = 32,
+    extensions = "M",
+    initValue = Map(
       "pc"    -> "h0000_0200",
       "mtvec" -> "h0000_01c0"
     ),
-    "formal" -> Seq("ArbitraryRegFile")
+    formal = Seq("ArbitraryRegFile")
   )
   val resultEventWire = rvspeccore.checker.ConnectCheckerResult.makeEventSource()(32, rvConfig)
   resultEventWire.valid := io.expt
