@@ -14,3 +14,8 @@ object Main extends App {
     args
   )
 }
+
+object Emitter extends App {
+  (new chisel3.stage.ChiselStage)
+    .emitSystemVerilog(new CoreSoc(new Core(MiniConfig().core)), Array("--target-dir", "test_run_dir/emit"))
+}
