@@ -14,3 +14,12 @@ object Main extends App {
     args
   )
 }
+
+object Emitter extends App {
+  ChiselStage.emitSystemVerilogFile(
+    new CoreSoc(new Core(MiniConfig().core)),
+    Array("--target-dir", "test_run_dir/emit"),
+    Array("-disable-all-randomization", "--verification-flavor=immediate")
+    // "-strip-debug-info"
+  )
+}

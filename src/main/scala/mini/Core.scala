@@ -190,9 +190,6 @@ class Core(val conf: CoreConfig) extends Module {
   BoringUtils.addSink(JumpNot, "Jumpornot")
   val pc_wdata_test = Wire(UInt(32.W))
   pc_wdata_test := DontCare
-  val testssdfly = Wire(Bool())
-  testssdfly := DontCare
-  BoringUtils.addSink(testssdfly, "testssdfly")
   BoringUtils.addSink(pc_wdata_test, "rvfiio_pc_jump_data")
 //  printf("[Jump]%d %x\n", JumpNot, pc_wdata_test)
 //  }
@@ -210,7 +207,7 @@ class Core(val conf: CoreConfig) extends Module {
       || RVI.loadStore(rvfi.insn)(conf.xlen)
 //      || RVI.other(rvfi.insn)(conf.xlen)
   )
-  BoringUtils.addSource(tmpAssume && (rvfi.trap === false.B), "someassumeid")
+  BoringUtils.addSource(WireInit(tmpAssume && (rvfi.trap === false.B)), "someassumeid")
   when(rvfi.valid){
 //    assume(
 //      RVI.regImm(rvfi.insn)(conf.xlen),

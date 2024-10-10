@@ -91,13 +91,12 @@ class Datapath(val conf: CoreConfig) extends Module {
       (io.ctrl.pc_sel === PC_0) -> pc
     )
   )
-  val jump = BoringUtils.addSource(csr.io.expt || RegNext(stall || (io.ctrl.pc_sel === PC_EPC) || (io.ctrl.pc_sel === PC_ALU) || (brCond.io.taken) || (io.ctrl.pc_sel === PC_0), 0.U).asBool,  "Jumpornot")
-  BoringUtils.addSource(Mux(csr.io.expt, next_pc, RegNext(next_pc, 0.U)), "rvfiio_pc_jump_data")
+  val jump = BoringUtils.addSource(WireInit(csr.io.expt || RegNext(stall || (io.ctrl.pc_sel === PC_EPC) || (io.ctrl.pc_sel === PC_ALU) || (brCond.io.taken) || (io.ctrl.pc_sel === PC_0), 0.U).asBool),  "Jumpornot")
+  BoringUtils.addSource(WireInit(Mux(csr.io.expt, next_pc, RegNext(next_pc, 0.U))), "rvfiio_pc_jump_data")
 //  printf("[PC Calc] stall:%d, expt:%d, pc_sel:%d Taken:%d pc:%x next_pc:%x \n", stall, csr.io.expt, io.ctrl.pc_sel, (brCond.io.taken), pc, next_pc)
   val inst =
     Mux(started || io.ctrl.inst_kill || brCond.io.taken || csr.io.expt, Instructions.NOP, io.icache.resp.bits.data)
 //  printf("pc:%x next_pc:%x inst:%x\n", pc, next_pc, inst)
-  BoringUtils.addSink(csr.io.expt, "testssdfly")
   pc := next_pc
   io.icache.req.bits.addr := next_pc
   io.icache.req.bits.data := 0.U
@@ -202,7 +201,7 @@ class Datapath(val conf: CoreConfig) extends Module {
   )
 //  printf("AlU:%x %x\n", ew_reg.alu, alu.io.sum)
   BoringUtils.addSource(io.dcache.resp.bits.data, "rvfiio_mem_rdata")
-  BoringUtils.addSource(load_mask, "rvfiio_mem_rmask")
+  BoringUtils.addSource(WireInit(load_mask), "rvfiio_mem_rmask")
 //  printf("DCache Access[DataPath]: Req Valid:%d Addr:%x Data:%x Mask:%x load:%x\n", io.dcache.req.valid, io.dcache.req.bits.addr, io.dcache.req.bits.data, io.dcache.req.bits.mask, load)
   val mem_wmask = RegNext(io.dcache.req.bits.mask, 0.U)
   val mem_wdata = RegNext(io.dcache.req.bits.data, 0.U)
@@ -293,8 +292,8 @@ class Datapath(val conf: CoreConfig) extends Module {
   BoringUtils.addSource(flywire_rs2_addr, "rvfiio_rs2_addr")
   BoringUtils.addSource(RegNext(rs1, 0.U), "rvfiio_rs1_rdata")
   BoringUtils.addSource(RegNext(rs2, 0.U), "rvfiio_rs2_rdata")
-  BoringUtils.addSource(Mux(regFile.io.wen, wb_rd_addr, 0.U), "rvfiio_rd_addr")
-  BoringUtils.addSource(regWrite, "rvfiio_rd_wdata")
+  BoringUtils.addSource(WireInit(Mux(regFile.io.wen, wb_rd_addr, 0.U)), "rvfiio_rd_addr")
+  BoringUtils.addSource(WireInit(regWrite), "rvfiio_rd_wdata")
   BoringUtils.addSource(ew_reg.pc, "rvfiio_pc_rdata")
 //  BoringUtils.addSource(RegNext(next_pc, 0.U), "rvfiio_pc_wdata") // 可能会被刷掉，所以是不对的
   BoringUtils.addSource(RegNext(daddr, 0.U), "rvfiio_mem_addr")
